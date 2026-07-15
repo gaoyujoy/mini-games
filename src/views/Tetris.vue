@@ -74,15 +74,15 @@
           <dl class="keys">
             <div>
               <dt>移动</dt>
-              <dd>← → / A D</dd>
+              <dd>← → / A D / 滑动</dd>
             </div>
             <div>
               <dt>旋转</dt>
-              <dd>↑ / W</dd>
+              <dd>↑ / W / 上滑</dd>
             </div>
             <div>
               <dt>下落</dt>
-              <dd>↓ 软降 / Space 硬降</dd>
+              <dd>↓ 软降 / 点击硬降</dd>
             </div>
             <div>
               <dt>暂停/重开</dt>
@@ -173,6 +173,8 @@ const paused = ref(false);
 const gameOver = ref(false);
 
 let timer: number | undefined;
+let touchStartX = 0;
+let touchStartY = 0;
 
 const running = computed(() => started.value && !paused.value && !gameOver.value);
 
@@ -454,6 +456,61 @@ function handleKey(event: KeyboardEvent) {
   }
 }
 
+function handleTouchStart(event: TouchEvent) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  if (!touchStartX || !touchStartY) return;
+
+  const touchEndX = event.changedTouches[0].clientX;
+  const touchEndY = event.changedTouches[0].clientY;
+
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+
+  const minSwipeDistance = 30;
+
+  if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
+    if (!started.value || gameOver.value) {
+      startGame();
+    } else if (running.value) {
+      hardDrop();
+    }
+    touchStartX = 0;
+    touchStartY = 0;
+    return;
+  }
+
+  if (!started.value || gameOver.value) {
+    startGame();
+  }
+
+  if (!running.value) {
+    touchStartX = 0;
+    touchStartY = 0;
+    return;
+  }
+
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX > 0) {
+      movePiece(1, 0);
+    } else {
+      movePiece(-1, 0);
+    }
+  } else {
+    if (diffY > 0) {
+      if (movePiece(0, 1)) score.value += 1;
+    } else {
+      rotatePiece();
+    }
+  }
+
+  touchStartX = 0;
+  touchStartY = 0;
+}
+
 function focusBoard() {
   nextTick(() => boardRef.value?.focus());
 }
@@ -461,12 +518,16 @@ function focusBoard() {
 onMounted(() => {
   resetGame();
   window.addEventListener("keydown", handleKey);
+  boardRef.value?.addEventListener("touchstart", handleTouchStart, { passive: true });
+  boardRef.value?.addEventListener("touchend", handleTouchEnd, { passive: true });
   focusBoard();
 });
 
 onUnmounted(() => {
   stopTimer();
   window.removeEventListener("keydown", handleKey);
+  boardRef.value?.removeEventListener("touchstart", handleTouchStart);
+  boardRef.value?.removeEventListener("touchend", handleTouchEnd);
 });
 </script>
 

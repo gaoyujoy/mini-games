@@ -62,7 +62,7 @@
           <dl class="keys">
             <div>
               <dt>移动</dt>
-              <dd>方向键 / WASD</dd>
+              <dd>方向键 / WASD / 滑动</dd>
             </div>
             <div>
               <dt>目标</dt>
@@ -103,6 +103,9 @@ const score = ref(0);
 const bestScore = ref(0);
 const won = ref(false);
 const gameOver = ref(false);
+
+let touchStartX = 0;
+let touchStartY = 0;
 
 const tiles = computed<RenderTile[]>(() => {
   const nextTiles: RenderTile[] = [];
@@ -286,6 +289,44 @@ function handleKey(event: KeyboardEvent) {
   }
 }
 
+function handleTouchStart(event: TouchEvent) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  if (!touchStartX || !touchStartY) return;
+
+  const touchEndX = event.changedTouches[0].clientX;
+  const touchEndY = event.changedTouches[0].clientY;
+
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+
+  const minSwipeDistance = 30;
+
+  if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
+    return;
+  }
+
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX > 0) {
+      move("right");
+    } else {
+      move("left");
+    }
+  } else {
+    if (diffY > 0) {
+      move("down");
+    } else {
+      move("up");
+    }
+  }
+
+  touchStartX = 0;
+  touchStartY = 0;
+}
+
 function focusBoard() {
   nextTick(() => boardRef.value?.focus());
 }
@@ -303,10 +344,14 @@ onMounted(() => {
   loadBestScore();
   newGame();
   window.addEventListener("keydown", handleKey);
+  boardRef.value?.addEventListener("touchstart", handleTouchStart, { passive: true });
+  boardRef.value?.addEventListener("touchend", handleTouchEnd, { passive: true });
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKey);
+  boardRef.value?.removeEventListener("touchstart", handleTouchStart);
+  boardRef.value?.removeEventListener("touchend", handleTouchEnd);
 });
 </script>
 

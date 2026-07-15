@@ -67,7 +67,7 @@
           <dl class="keys">
             <div>
               <dt>移动</dt>
-              <dd>方向键 / WASD</dd>
+              <dd>方向键 / WASD / 滑动</dd>
             </div>
             <div>
               <dt>暂停</dt>
@@ -118,6 +118,8 @@ const paused = ref(false);
 const gameOver = ref(false);
 
 let timer: number | undefined;
+let touchStartX = 0;
+let touchStartY = 0;
 
 const running = computed(() => started.value && !paused.value && !gameOver.value);
 
@@ -137,7 +139,7 @@ const overlayTitle = computed(() => {
 const overlayText = computed(() => {
   if (gameOver.value) return "按 R 或点击重新开始";
   if (paused.value) return "按 Space 继续";
-  return "按方向键、WASD 或点击开始";
+  return "按方向键、WASD 或滑动开始";
 });
 
 const snakeMap = computed(() => {
@@ -342,6 +344,48 @@ function handleWindowKey(event: KeyboardEvent) {
   handleKey(event);
 }
 
+function handleTouchStart(event: TouchEvent) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  if (!touchStartX || !touchStartY) return;
+
+  const touchEndX = event.changedTouches[0].clientX;
+  const touchEndY = event.changedTouches[0].clientY;
+
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+
+  const minSwipeDistance = 30;
+
+  if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
+    return;
+  }
+
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX > 0) {
+      setDirection("right");
+    } else {
+      setDirection("left");
+    }
+  } else {
+    if (diffY > 0) {
+      setDirection("down");
+    } else {
+      setDirection("up");
+    }
+  }
+
+  if (!started.value || gameOver.value) {
+    startGame();
+  }
+
+  touchStartX = 0;
+  touchStartY = 0;
+}
+
 function focusBoard() {
   nextTick(() => boardRef.value?.focus());
 }
@@ -365,12 +409,16 @@ onMounted(() => {
   loadBestScore();
   resetGame();
   window.addEventListener("keydown", handleWindowKey);
+  boardRef.value?.addEventListener("touchstart", handleTouchStart, { passive: true });
+  boardRef.value?.addEventListener("touchend", handleTouchEnd, { passive: true });
   focusBoard();
 });
 
 onUnmounted(() => {
   stopTimer();
   window.removeEventListener("keydown", handleWindowKey);
+  boardRef.value?.removeEventListener("touchstart", handleTouchStart);
+  boardRef.value?.removeEventListener("touchend", handleTouchEnd);
 });
 </script>
 

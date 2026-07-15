@@ -500,6 +500,10 @@ button:hover {
     justify-items: center;
   }
 
+  .board {
+    --board-size: min(85vw, 480px);
+  }
+
   .side-panel {
     width: min(100%, 520px);
   }
