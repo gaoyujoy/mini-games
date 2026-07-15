@@ -631,7 +631,7 @@ button:hover {
   font-weight: 800;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .game-2048 {
     padding: 22px 14px;
   }

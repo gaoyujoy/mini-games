@@ -669,7 +669,7 @@ button:disabled {
   font-weight: 700;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .snake-game {
     padding: 22px 14px;
   }
